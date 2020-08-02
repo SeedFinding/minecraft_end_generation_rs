@@ -1,0 +1,11 @@
+[package]
+name = "minecraft_end_generation"
+version = "0.1.0"
+authors = ["Neil <neilhube12@gmail.com>"]
+edition = "2018"
+description="The minecraft end generation implemented in rust"
+categories=["algorithms","data-structures"]
+license="MIT"
+
+[dependencies]
+java_random = "0.1.1"

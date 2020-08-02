@@ -1,4 +1,4 @@
-use crate::lcg_utilities::lcg::Random;
+use java_random::Random;
 
 pub const F2: f64 = 0.3660254037844386;
 pub const G2: f64 = 0.21132486540518713;

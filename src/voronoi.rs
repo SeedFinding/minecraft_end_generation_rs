@@ -1,5 +1,8 @@
-use crate::lcg_utilities::biome_lcg::next;
-use crate::utilities::math::math;
+use crate::math;
+
+pub fn next(world_seed: i64, salt: i64) -> i64 {
+    return world_seed * (world_seed * 6364136223846793005i64 + 1442695040888963407i64) + salt;
+}
 
 pub fn get_fuzzy_positions(world_seed: i64, x: i32, y: i32, z: i32) -> (i32, i32, i32) {
     let moved_x: i32 = x - 2;
