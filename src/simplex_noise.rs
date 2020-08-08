@@ -92,9 +92,9 @@ impl SimplexNoise {
         let y2: f64 = y0 - 1.0f64 + 2.0f64 * G2;
         let ii: u8 = (temperature_x & 0xFF) as u8;
         let jj: u8 = (temperature_z & 0xFF) as u8;
-        let gi0: u8 = self.lookup(ii + self.lookup(jj)) % 12;
-        let gi1: u8 = self.lookup(ii + offset_second_corner_x + self.lookup(jj + offset_second_corner_z)) % 12;
-        let gi2: u8 = self.lookup(ii + 1 + self.lookup(jj + 1)) % 12;
+        let gi0: u8 = self.lookup(ii.wrapping_add(self.lookup(jj))) % 12u8;
+        let gi1: u8 = self.lookup(ii.wrapping_add(offset_second_corner_x).wrapping_add(self.lookup(jj.wrapping_add(offset_second_corner_z)))) % 12u8;
+        let gi2: u8 = self.lookup(ii.wrapping_add(1u8).wrapping_add(self.lookup(jj.wrapping_add(1u8)))) % 12u8;
         let t0: f64 = SimplexNoise::get_corner_noise3d(gi0, x0, y0, 0.0f64, 0.5f64);
         let t1: f64 = SimplexNoise::get_corner_noise3d(gi1, x1, y1, 0.0f64, 0.5f64);
         let t2: f64 = SimplexNoise::get_corner_noise3d(gi2, x2, y2, 0.0f64, 0.5f64);
@@ -183,10 +183,10 @@ impl SimplexNoise {
         let ii: u8 = (i & 0xff) as u8;
         let jj: u8 = (j & 0xff) as u8;
         let kk: u8 = (k & 0xff) as u8;
-        let gi0: u8 = self.lookup(ii + self.lookup(jj + self.lookup(kk))) % 12;
-        let gi1: u8 = self.lookup(ii + i1 + self.lookup(jj + j1 + self.lookup(kk + k1))) % 12;
-        let gi2: u8 = self.lookup(ii + i2 + self.lookup(jj + j2 + self.lookup(kk + k2))) % 12;
-        let gi3: u8 = self.lookup(ii + 1 + self.lookup(jj + 1 + self.lookup(kk + 1))) % 12;
+        let gi0: u8 = self.lookup(ii.wrapping_add(self.lookup(jj.wrapping_add(self.lookup(kk))))) % 12u8;
+        let gi1: u8 = self.lookup(ii.wrapping_add(i1).wrapping_add(self.lookup(jj.wrapping_add(j1.wrapping_add(self.lookup(kk.wrapping_add(k1))))))) % 12u8;
+        let gi2: u8 = self.lookup(ii.wrapping_add(i2).wrapping_add(self.lookup(jj.wrapping_add(j2.wrapping_add(self.lookup(kk.wrapping_add(k2))))))) % 12u8;
+        let gi3: u8 = self.lookup(ii.wrapping_add(1).wrapping_add(self.lookup(jj.wrapping_add(1u8.wrapping_add(self.lookup(kk.wrapping_add(1u8))))))) % 12u8;
 
         // calculate the contribution of the 4 corners
         // should be 0.5 not 0.6 else the noise is not continuous on simplex boundaries but yeah mojang

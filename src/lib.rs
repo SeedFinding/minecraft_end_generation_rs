@@ -1,38 +1,87 @@
 mod math;
 
+use sha2::{Sha256, Digest};
 use crate::simplex_noise::SimplexNoise;
 use crate::voronoi::get_fuzzy_positions;
-use java_random::{Random, END_LCG};
+use java_random::{Random, END_LCG, JAVA_LCG};
+use std::fs::File;
+use std::io::{Write, BufWriter};
+use std::cmp::min;
+use std::ops::Shl;
+
 mod voronoi;
 mod simplex_noise;
 
-
+fn sha2long(mut seed: u64) -> u64 {
+    let mut bytes: [u8; 8] = [0; 8];
+    for i in 0..8 {
+        bytes[i] = (seed & 255) as u8;
+        seed >>= 8;
+    }
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    let result = hasher.finalize();
+    let mut ret_val: u64 = (result[0] & 0xFF) as u64;
+    for i in 1..min(8, result.len()) {
+        ret_val |= (((result[i] & 0xFF) as u64).wrapping_shl((i << 3) as u32)) as u64;
+    }
+    ret_val
+}
 
 #[derive(Copy, Clone)]
 pub struct EndGen {
     seed: u64,
-    x: i32,
-    z: i32,
     noise: SimplexNoise,
 }
 
 pub enum EndBiomes {
-    TheEnd,
-    EndHighlands,
-    EndMidlands,
-    SmallEndIslands,
-    EndBarrens,
+    TheEnd = 9,
+    SmallEndIslands = 40,
+    EndMidlands = 41,
+    EndHighlands = 42,
+    EndBarrens = 43,
+}
+
+#[test]
+fn testsha() {
+    assert_eq!(sha2long(1551515151585454), 4053242177535254290)
+}
+
+#[test]
+fn gen1() {
+    let seed: u64 = 1551515151585454u64;
+    let x: i32 = 10000;
+    let z: i32 = 10000;
+    let mut gen: EndGen = EndGen::new(seed);
+    println!("{}", gen.get_biome(x, z) as u8);
+}
+
+#[test]
+fn gen1million() {
+    let seed: u64 = 1551515151585454;
+    let offset_x: i32 = 10000;
+    let offset_z: i32 = 10000;
+    let mut gen: EndGen = EndGen::new(seed);
+    let mut f = BufWriter::new(File::create("out.txt").unwrap());
+    for x in 0..1000 {
+        for z in 0..1000 {
+            write!(f, "{} ", gen.get_biome(offset_x + x, offset_z + z) as u8).expect("Failed to write file");
+        }
+        writeln!(f).expect("Failed to write newline to file");
+        f.flush().expect("fail to flush");
+    }
 }
 
 impl EndGen {
-    pub fn new(seed: u64, x: i32, z: i32) -> Self {
-        let seed: u64 = Random::with_seed_and_lcg(seed, END_LCG).next_state().get_raw_seed();
+    pub fn new(seed: u64) -> Self {
+        let mut r: Random = Random::with_raw_seed_and_lcg(seed ^ 0x5DEECE66D, END_LCG);
+        let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
-        EndGen { seed, x, z, noise }
+        EndGen { seed, noise }
     }
 
     pub fn get_final_biome(&mut self, x: i32, z: i32) -> EndBiomes {
-        let (xx, _, zz): (i32, i32, i32) = get_fuzzy_positions(self.seed as i64, x, 0, z);
+        let (xx, _, zz): (i32, i32, i32) = get_fuzzy_positions(sha2long(self.seed) as i64, x, 0, z);
         return self.get_biome(xx, zz);
     }
     pub fn get_biome(&mut self, x: i32, z: i32) -> EndBiomes {
@@ -77,16 +126,5 @@ impl EndGen {
     pub fn set_seed(&mut self, seed: u64) {
         let mut random: Random = Random::with_seed_and_lcg(seed, END_LCG);
         self.seed = random.next_state().get_raw_seed()
-    }
-
-    pub fn set_position(&mut self, x: i32, z: i32) {
-        self.x = x;
-        self.z = z;
-    }
-    pub fn set_x(&mut self, x: i32) {
-        self.x = x;
-    }
-    pub fn set_z(&mut self, z: i32) {
-        self.z = z;
     }
 }
