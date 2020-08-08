@@ -2,12 +2,12 @@ mod math;
 
 use sha2::{Sha256, Digest};
 use crate::simplex_noise::SimplexNoise;
-use crate::voronoi::get_fuzzy_positions;
+use crate::voronoi::{Voronoi};
 use java_random::{Random, END_LCG, JAVA_LCG};
 use std::fs::File;
 use std::io::{Write, BufWriter};
 use std::cmp::min;
-use std::ops::Shl;
+use core::fmt;
 
 mod voronoi;
 mod simplex_noise;
@@ -28,18 +28,20 @@ fn sha2long(mut seed: u64) -> u64 {
     ret_val
 }
 
-#[derive(Copy, Clone)]
-pub struct EndGen {
-    seed: u64,
-    noise: SimplexNoise,
-}
 
+#[derive(Debug)]
 pub enum EndBiomes {
     TheEnd = 9,
     SmallEndIslands = 40,
     EndMidlands = 41,
     EndHighlands = 42,
     EndBarrens = 43,
+}
+
+impl fmt::Display for EndBiomes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[test]
@@ -53,8 +55,20 @@ fn gen1() {
     let x: i32 = 10000;
     let z: i32 = 10000;
     let mut gen: EndGen = EndGen::new(seed);
-    println!("{}", gen.get_biome(x, z) as u8);
+    println!("{}", gen.get_final_biome(x, 251, z).to_string());
 }
+
+#[test]
+fn gen_column() {
+    let seed: u64 = 1551515151585454u64;
+    let x: i32 = 10000;
+    let z: i32 = 10000;
+    let mut gen: EndGen = EndGen::new(seed);
+    for y in 0..256 {
+        println!("{} {}", y, gen.get_final_biome(x, y, z).to_string());
+    }
+}
+
 
 #[test]
 fn gen1million() {
@@ -65,23 +79,34 @@ fn gen1million() {
     let mut f = BufWriter::new(File::create("out.txt").unwrap());
     for x in 0..1000 {
         for z in 0..1000 {
-            write!(f, "{} ", gen.get_biome(offset_x + x, offset_z + z) as u8).expect("Failed to write file");
+            write!(f, "{} ", gen.get_final_biome_2d(offset_x + x, offset_z + z) as u8).expect("Failed to write file");
         }
         writeln!(f).expect("Failed to write newline to file");
         f.flush().expect("fail to flush");
     }
 }
 
+#[derive(Clone)]
+pub struct EndGen {
+    seed: u64,
+    noise: SimplexNoise,
+    voronoi: Voronoi,
+}
+
 impl EndGen {
     pub fn new(seed: u64) -> Self {
+        let voronoi: Voronoi = Voronoi::new(sha2long(seed) as i64);
         let mut r: Random = Random::with_raw_seed_and_lcg(seed ^ 0x5DEECE66D, END_LCG);
         let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
-        EndGen { seed, noise }
+        EndGen { seed, noise, voronoi }
     }
-
-    pub fn get_final_biome(&mut self, x: i32, z: i32) -> EndBiomes {
-        let (xx, _, zz): (i32, i32, i32) = get_fuzzy_positions(sha2long(self.seed) as i64, x, 0, z);
+    pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
+        let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, 0, z);
+        return self.get_biome(xx, zz);
+    }
+    pub fn get_final_biome(&mut self, x: i32, y: i32, z: i32) -> EndBiomes {
+        let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, y, z);
         return self.get_biome(xx, zz);
     }
     pub fn get_biome(&mut self, x: i32, z: i32) -> EndBiomes {
@@ -90,7 +115,7 @@ impl EndGen {
         if chunk_x as i64 * chunk_x as i64 + chunk_z as i64 * chunk_z as i64 <= 4096i64 {
             return EndBiomes::TheEnd;
         }
-        let height: f32 = Self::get_height(self.noise, chunk_x * 2 + 1, chunk_z * 2 + 1);
+        let height: f32 = self.get_height(chunk_x * 2 + 1, chunk_z * 2 + 1);
         if height > 40.0f32 {
             return EndBiomes::EndHighlands;
         }
@@ -102,7 +127,7 @@ impl EndGen {
         }
         return EndBiomes::EndBarrens;
     }
-    pub fn get_height(noise: SimplexNoise, x: i32, z: i32) -> f32 {
+    pub fn get_height(&mut self, x: i32, z: i32) -> f32 {
         let scaled_x: i32 = x / 2;
         let scaled_z: i32 = z / 2;
         let odd_x: i32 = x % 2;
@@ -112,7 +137,7 @@ impl EndGen {
             for rz in -12..=12 {
                 let shifted_x: i64 = (scaled_x + rx) as i64;
                 let shifted_z: i64 = (scaled_z + rz) as i64;
-                if shifted_x * shifted_x + shifted_z * shifted_z <= 4096i64 || !(noise.get_value_2d(shifted_x as f64, shifted_z as f64) < -0.8999999761581421) {
+                if shifted_x * shifted_x + shifted_z * shifted_z <= 4096i64 || !(self.noise.get_value_2d(shifted_x as f64, shifted_z as f64) < -0.8999999761581421) {
                     continue;
                 }
                 let elevation: f32 = (math::abs(shifted_x as f32) * 3439.0f32 + math::abs(shifted_z as f32) * 147.0f32) % 13.0f32 + 9.0f32;

@@ -1,4 +1,6 @@
 use java_random::Random;
+use std::collections::HashMap;
+use std::fs::read;
 
 pub const F2: f64 = 0.3660254037844386;
 pub const G2: f64 = 0.21132486540518713;
@@ -22,12 +24,14 @@ pub const GRADIENT: [[i32; 3]; 16] =
         [-1, 1, 0],
         [0, -1, -1]];
 
-#[derive(Copy, Clone)] // remove Debug for 256 size static array
+#[derive(Clone)] // remove Debug for 256 size static array
 pub struct SimplexNoise {
     x0: f64,
     y0: f64,
     z0: f64,
     permutations: [u8; 256],
+    cache2d: HashMap<u64, f64>,
+    cache3d: HashMap<u128, f64>,
 }
 
 impl SimplexNoise {
@@ -45,29 +49,40 @@ impl SimplexNoise {
             permutations[(random_index + index) as usize] = permutations[index as usize];
             permutations[index as usize] = temp;
         }
-        SimplexNoise { x0, y0, z0, permutations }
+        let cache2d: HashMap<u64, f64> = HashMap::new();
+        let cache3d: HashMap<u128, f64> = HashMap::new();
+        SimplexNoise { x0, y0, z0, permutations, cache2d, cache3d }
     }
-    pub fn lookup(&self, n: u8) -> u8 {
+    fn lookup(&self, n: u8) -> u8 {
         self.permutations[(n & 0xff) as usize]
     }
 
-    pub fn dot(g: [i32; 3], d: f64, d2: f64, d3: f64) -> f64 {
+    fn dot(g: [i32; 3], d: f64, d2: f64, d3: f64) -> f64 {
         (g[0 as usize]) as f64 * d + (g[1 as usize]) as f64 * d2 + (g[2 as usize]) as f64 * d3
     }
 
-    pub fn get_corner_noise3d(n: u8, x: f64, y: f64, z: f64, max: f64) -> f64 {
+    fn get_corner_noise3d(n: u8, x: f64, y: f64, z: f64, max: f64) -> f64 {
         let res: f64;
         let mut contribution: f64 = max - x * x - y * y - z * z;
         if contribution < 0.0 {
             res = 0.0;
         } else {
             contribution *= contribution;
-            res = contribution * contribution * SimplexNoise::dot(GRADIENT[n as usize], x, y, z);
+            res = contribution * contribution * Self::dot(GRADIENT[n as usize], x, y, z);
         }
         res
     }
-
-    pub fn get_value_2d(&self, x: f64, z: f64) -> f64 {
+    pub fn get_value_2d(&mut self, x: f64, z: f64) -> f64 {
+        let key: u64 = ((x as u64) << 32 | (z as u64)) as u64;
+        let mut value: f64 = *self.cache2d.get(&key).unwrap_or(&f64::MAX);
+        if value != f64::MAX {
+            return value;
+        }
+        let value = self._get_value_2d(x, z);
+        self.cache2d.insert(key, value);
+        return value;
+    }
+    fn _get_value_2d(&self, x: f64, z: f64) -> f64 {
         let hairy_factor: f64 = (x + z) * F2;
         let temperature_x: i32 = (x + hairy_factor).floor() as i32;
         let temperature_z: i32 = (z + hairy_factor).floor() as i32;
@@ -95,12 +110,23 @@ impl SimplexNoise {
         let gi0: u8 = self.lookup(ii.wrapping_add(self.lookup(jj))) % 12u8;
         let gi1: u8 = self.lookup(ii.wrapping_add(offset_second_corner_x).wrapping_add(self.lookup(jj.wrapping_add(offset_second_corner_z)))) % 12u8;
         let gi2: u8 = self.lookup(ii.wrapping_add(1u8).wrapping_add(self.lookup(jj.wrapping_add(1u8)))) % 12u8;
-        let t0: f64 = SimplexNoise::get_corner_noise3d(gi0, x0, y0, 0.0f64, 0.5f64);
-        let t1: f64 = SimplexNoise::get_corner_noise3d(gi1, x1, y1, 0.0f64, 0.5f64);
-        let t2: f64 = SimplexNoise::get_corner_noise3d(gi2, x2, y2, 0.0f64, 0.5f64);
+        let t0: f64 = Self::get_corner_noise3d(gi0, x0, y0, 0.0f64, 0.5f64);
+        let t1: f64 = Self::get_corner_noise3d(gi1, x1, y1, 0.0f64, 0.5f64);
+        let t2: f64 = Self::get_corner_noise3d(gi2, x2, y2, 0.0f64, 0.5f64);
         70.0f64 * (t0 + t1 + t2)
     }
-    pub fn get_value_3d(&self, x: f64, y: f64, z: f64) -> f64 {
+
+    pub fn get_value_3d(&mut self, x: f64, y: f64, z: f64) -> f64 {
+        let key: u128 = ((x as u128) << 64 | (y as u128) << 32 | (z as u128)) as u128;
+        let mut value: f64 = *self.cache3d.get(&key).unwrap_or(&f64::MAX);
+        if value != f64::MAX {
+            return value;
+        }
+        value = self._get_value_3d(x, y, z);
+        self.cache3d.insert(key, value);
+        return value;
+    }
+    fn _get_value_3d(&self, x: f64, y: f64, z: f64) -> f64 {
         let skew_factor: f64 = (x + y + z) * F3; // F3 is 1/3
         // Skew the input space to determine which simplex cell we're in
         let i: i32 = (x + skew_factor).floor() as i32;
@@ -190,10 +216,10 @@ impl SimplexNoise {
 
         // calculate the contribution of the 4 corners
         // should be 0.5 not 0.6 else the noise is not continuous on simplex boundaries but yeah mojang
-        let t0: f64 = SimplexNoise::get_corner_noise3d(gi0, x0, y0, z0, 0.6f64);
-        let t1: f64 = SimplexNoise::get_corner_noise3d(gi1, x1, y1, z1, 0.6f64);
-        let t2: f64 = SimplexNoise::get_corner_noise3d(gi2, x2, y2, z2, 0.6f64);
-        let t3: f64 = SimplexNoise::get_corner_noise3d(gi3, x3, y3, z3, 0.6f64);
+        let t0: f64 = Self::get_corner_noise3d(gi0, x0, y0, z0, 0.6f64);
+        let t1: f64 = Self::get_corner_noise3d(gi1, x1, y1, z1, 0.6f64);
+        let t2: f64 = Self::get_corner_noise3d(gi2, x2, y2, z2, 0.6f64);
+        let t3: f64 = Self::get_corner_noise3d(gi3, x3, y3, z3, 0.6f64);
         32.0f64 * (t0 + t1 + t2 + t3)
     }
 }
