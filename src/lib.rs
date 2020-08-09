@@ -1,18 +1,17 @@
-mod math;
+#![allow(dead_code)]
 
+mod math;
 use sha2::{Sha256, Digest};
-use crate::simplex_noise::SimplexNoise;
 use crate::voronoi::{Voronoi};
-use java_random::{Random, END_LCG, JAVA_LCG};
-use std::fs::File;
-use std::io::{Write, BufWriter};
+use java_random::{Random, LCG};
 use std::cmp::min;
 use core::fmt;
-use std::time::SystemTime;
 use intmap::IntMap;
+use noise_rs::simplex_noise::SimplexNoise;
 
 mod voronoi;
-mod simplex_noise;
+
+pub const END_LCG: LCG = LCG { multiplier: 257489430523441, addend: 184379205320524 };
 
 fn sha2long(mut seed: u64) -> u64 {
     let mut bytes: [u8; 8] = [0; 8];
@@ -31,9 +30,9 @@ fn sha2long(mut seed: u64) -> u64 {
 }
 
 
-#[derive(Debug, Clone, Copy,PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EndBiomes {
-    Default=0,
+    Default = 0,
     TheEnd = 9,
     SmallEndIslands = 40,
     EndMidlands = 41,
@@ -52,7 +51,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn testsha() {
+    fn test_sha() {
         assert_eq!(sha2long(1551515151585454), 4053242177535254290)
     }
 
@@ -62,7 +61,7 @@ mod tests {
         let x: i32 = 10000;
         let z: i32 = 10000;
         let mut gen: EndGen = EndGen::new(seed);
-        println!("{}", gen.get_final_biome(x, 251, z).to_string());
+        assert_eq!(gen.get_final_biome(x, 251, z).to_string(),"SmallEndIslands");
     }
 
     #[test]
@@ -71,9 +70,13 @@ mod tests {
         let x: i32 = 10000;
         let z: i32 = 10000;
         let mut gen: EndGen = EndGen::new(seed);
+        let mut sum:i32=0;
         for y in 0..256 {
-            println!("{} {}", y, gen.get_final_biome(x, y, z).to_string());
+            let biome:EndBiomes=gen.get_final_biome(x, y, z);
+            sum=sum.wrapping_add(biome as i32);
+            println!("{} {}", y, biome.to_string());
         }
+        assert_eq!(sum,10689);
     }
 
 
@@ -83,14 +86,15 @@ mod tests {
         let offset_x: i32 = 10000;
         let offset_z: i32 = 10000;
         let mut gen: EndGen = EndGen::new(seed);
+        let mut som: i32 = 0;
         for x in 0..1000 {
             for z in 0..1000 {
-                gen.get_final_biome_2d(offset_x + x, offset_z + z);
+                som = som.wrapping_add(gen.get_final_biome_2d(offset_x + x, offset_z + z) as i32);
             }
         }
+        assert_eq!(som, 41033489);
     }
 }
-
 
 
 #[derive(Clone)]
@@ -98,27 +102,27 @@ pub struct EndGen {
     seed: u64,
     noise: SimplexNoise,
     voronoi: Voronoi,
-    cache:IntMap<EndBiomes>,
+    cache: IntMap<EndBiomes>,
 }
 
 impl EndGen {
     pub fn new(seed: u64) -> Self {
         let voronoi: Voronoi = Voronoi::new(sha2long(seed) as i64);
-        let mut r: Random = Random::with_raw_seed_and_lcg(seed ^ 0x5DEECE66D, END_LCG);
+        let mut r: Random = Random::with_raw_seed_and_lcg(Random::default_scramble(seed), END_LCG);
         let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
         let cache: IntMap<EndBiomes> = IntMap::with_capacity(1024);
-        EndGen { seed, noise, voronoi,cache }
+        EndGen { seed, noise, voronoi, cache }
     }
     pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, 0, z);
-        return self.get_biome(xx>>2, zz>>2);
+        return self.get_biome(xx >> 2, zz >> 2);
     }
     pub fn get_final_biome(&mut self, x: i32, y: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, y, z);
-        return self.get_biome(xx>>2, zz>>2);
+        return self.get_biome(xx >> 2, zz >> 2);
     }
-    pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes{
+    pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
         let key: u64 = ((chunk_x as u64) << 32 | (chunk_z as u64)) as u64;
         let value: EndBiomes = *self.cache.get(key).unwrap_or(&EndBiomes::Default);
         if value != EndBiomes::Default {
@@ -144,7 +148,7 @@ impl EndGen {
         }
         return EndBiomes::EndBarrens;
     }
-    pub fn get_height(&mut self, x: i32, z: i32) -> f32 {
+    fn get_height(&mut self, x: i32, z: i32) -> f32 {
         let scaled_x: i32 = x / 2;
         let scaled_z: i32 = z / 2;
         let odd_x: i32 = x % 2;
@@ -166,7 +170,7 @@ impl EndGen {
         return height;
     }
     pub fn set_seed(&mut self, seed: u64) {
-        let mut random: Random = Random::with_seed_and_lcg(seed, END_LCG);
+        let mut random: Random = Random::with_seed_and_lcg(Random::default_scramble(seed), END_LCG);
         self.seed = random.next_state().get_raw_seed()
     }
 }
