@@ -44,47 +44,51 @@ impl fmt::Display for EndBiomes {
     }
 }
 
-#[test]
-fn testsha() {
-    assert_eq!(sha2long(1551515151585454), 4053242177535254290)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn gen1() {
-    let seed: u64 = 1551515151585454u64;
-    let x: i32 = 10000;
-    let z: i32 = 10000;
-    let mut gen: EndGen = EndGen::new(seed);
-    println!("{}", gen.get_final_biome(x, 251, z).to_string());
-}
-
-#[test]
-fn gen_column() {
-    let seed: u64 = 1551515151585454u64;
-    let x: i32 = 10000;
-    let z: i32 = 10000;
-    let mut gen: EndGen = EndGen::new(seed);
-    for y in 0..256 {
-        println!("{} {}", y, gen.get_final_biome(x, y, z).to_string());
+    #[test]
+    fn testsha() {
+        assert_eq!(sha2long(1551515151585454), 4053242177535254290)
     }
-}
 
+    #[test]
+    fn gen1() {
+        let seed: u64 = 1551515151585454u64;
+        let x: i32 = 10000;
+        let z: i32 = 10000;
+        let mut gen: EndGen = EndGen::new(seed);
+        println!("{}", gen.get_final_biome(x, 251, z).to_string());
+    }
 
-#[test]
-fn gen1million() {
-    let seed: u64 = 1551515151585454;
-    let offset_x: i32 = 10000;
-    let offset_z: i32 = 10000;
-    let mut gen: EndGen = EndGen::new(seed);
-    let mut f = BufWriter::new(File::create("out.txt").unwrap());
-    for x in 0..1000 {
-        for z in 0..1000 {
-            write!(f, "{} ", gen.get_final_biome_2d(offset_x + x, offset_z + z) as u8).expect("Failed to write file");
+    #[test]
+    fn gen_column() {
+        let seed: u64 = 1551515151585454u64;
+        let x: i32 = 10000;
+        let z: i32 = 10000;
+        let mut gen: EndGen = EndGen::new(seed);
+        for y in 0..256 {
+            println!("{} {}", y, gen.get_final_biome(x, y, z).to_string());
         }
-        writeln!(f).expect("Failed to write newline to file");
-        f.flush().expect("fail to flush");
+    }
+
+
+    #[test]
+    fn gen1million() {
+        let seed: u64 = 1551515151585454;
+        let offset_x: i32 = 10000;
+        let offset_z: i32 = 10000;
+        let mut gen: EndGen = EndGen::new(seed);
+        for x in 0..1000 {
+            for z in 0..1000 {
+                gen.get_final_biome_2d(offset_x + x, offset_z + z)
+            }
+        }
     }
 }
+
+
 
 #[derive(Clone)]
 pub struct EndGen {

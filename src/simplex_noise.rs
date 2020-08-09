@@ -1,6 +1,5 @@
 use java_random::Random;
 use std::collections::HashMap;
-use std::fs::read;
 
 pub const F2: f64 = 0.3660254037844386;
 pub const G2: f64 = 0.21132486540518713;
@@ -74,11 +73,11 @@ impl SimplexNoise {
     }
     pub fn get_value_2d(&mut self, x: f64, z: f64) -> f64 {
         let key: u64 = ((x as u64) << 32 | (z as u64)) as u64;
-        let mut value: f64 = *self.cache2d.get(&key).unwrap_or(&f64::MAX);
+        let value: f64 = *self.cache2d.get(&key).unwrap_or(&f64::MAX);
         if value != f64::MAX {
             return value;
         }
-        let value = self._get_value_2d(x, z);
+        let value: f64 = self._get_value_2d(x, z);
         self.cache2d.insert(key, value);
         return value;
     }
@@ -118,11 +117,11 @@ impl SimplexNoise {
 
     pub fn get_value_3d(&mut self, x: f64, y: f64, z: f64) -> f64 {
         let key: u128 = ((x as u128) << 64 | (y as u128) << 32 | (z as u128)) as u128;
-        let mut value: f64 = *self.cache3d.get(&key).unwrap_or(&f64::MAX);
+        let value: f64 = *self.cache3d.get(&key).unwrap_or(&f64::MAX);
         if value != f64::MAX {
             return value;
         }
-        value = self._get_value_3d(x, y, z);
+        let value: f64 = self._get_value_3d(x, y, z);
         self.cache3d.insert(key, value);
         return value;
     }

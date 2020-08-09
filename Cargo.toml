@@ -10,3 +10,16 @@ license="MIT"
 [dependencies]
 java_random = "0.1.1"
 sha2 = "0.9.1"
+
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "bench"
+harness = false
+
+
+[[bin]]
+name="temp"
+path="src/bin.rs"
