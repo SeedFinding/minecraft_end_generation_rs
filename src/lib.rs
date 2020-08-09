@@ -85,7 +85,7 @@ mod tests {
         let mut gen: EndGen = EndGen::new(seed);
         for x in 0..1000 {
             for z in 0..1000 {
-                gen.get_final_biome_2d(offset_x + x, offset_z + z)
+                gen.get_final_biome_2d(offset_x + x, offset_z + z);
             }
         }
     }
