@@ -10,7 +10,13 @@ license="MIT"
 [dependencies]
 java_random = "0.1.1"
 sha2 = "0.9.1"
+intmap = "0.7.0"
 
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
 
 [dev-dependencies]
 criterion = "0.3"

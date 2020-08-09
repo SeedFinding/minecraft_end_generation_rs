@@ -1,5 +1,7 @@
 use java_random::Random;
 use std::collections::HashMap;
+use intmap::IntMap;
+use std::time::SystemTime;
 
 pub const F2: f64 = 0.3660254037844386;
 pub const G2: f64 = 0.21132486540518713;
@@ -29,12 +31,14 @@ pub struct SimplexNoise {
     y0: f64,
     z0: f64,
     permutations: [u8; 256],
-    cache2d: HashMap<u64, f64>,
+    cache2d: IntMap<f64>,
     cache3d: HashMap<u128, f64>,
 }
 
 impl SimplexNoise {
     pub fn init(mut random: Random) -> SimplexNoise {
+
+
         let x0: f64 = random.next_double() * 256.0;
         let y0: f64 = random.next_double() * 256.0;
         let z0: f64 = random.next_double() * 256.0;
@@ -48,7 +52,7 @@ impl SimplexNoise {
             permutations[(random_index + index) as usize] = permutations[index as usize];
             permutations[index as usize] = temp;
         }
-        let cache2d: HashMap<u64, f64> = HashMap::new();
+        let cache2d: IntMap<f64> = IntMap::with_capacity(1024);
         let cache3d: HashMap<u128, f64> = HashMap::new();
         SimplexNoise { x0, y0, z0, permutations, cache2d, cache3d }
     }
@@ -60,7 +64,7 @@ impl SimplexNoise {
         (g[0 as usize]) as f64 * d + (g[1 as usize]) as f64 * d2 + (g[2 as usize]) as f64 * d3
     }
 
-    fn get_corner_noise3d(n: u8, x: f64, y: f64, z: f64, max: f64) -> f64 {
+    pub fn get_corner_noise3d(n: u8, x: f64, y: f64, z: f64, max: f64) -> f64 {
         let res: f64;
         let mut contribution: f64 = max - x * x - y * y - z * z;
         if contribution < 0.0 {
@@ -73,7 +77,7 @@ impl SimplexNoise {
     }
     pub fn get_value_2d(&mut self, x: f64, z: f64) -> f64 {
         let key: u64 = ((x as u64) << 32 | (z as u64)) as u64;
-        let value: f64 = *self.cache2d.get(&key).unwrap_or(&f64::MAX);
+        let value: f64 = *self.cache2d.get(key).unwrap_or(&f64::MAX);
         if value != f64::MAX {
             return value;
         }
@@ -109,9 +113,9 @@ impl SimplexNoise {
         let gi0: u8 = self.lookup(ii.wrapping_add(self.lookup(jj))) % 12u8;
         let gi1: u8 = self.lookup(ii.wrapping_add(offset_second_corner_x).wrapping_add(self.lookup(jj.wrapping_add(offset_second_corner_z)))) % 12u8;
         let gi2: u8 = self.lookup(ii.wrapping_add(1u8).wrapping_add(self.lookup(jj.wrapping_add(1u8)))) % 12u8;
-        let t0: f64 = Self::get_corner_noise3d(gi0, x0, y0, 0.0f64, 0.5f64);
-        let t1: f64 = Self::get_corner_noise3d(gi1, x1, y1, 0.0f64, 0.5f64);
-        let t2: f64 = Self::get_corner_noise3d(gi2, x2, y2, 0.0f64, 0.5f64);
+        let t0: f64 = SimplexNoise::get_corner_noise3d(gi0, x0, y0, 0.0f64, 0.5f64);
+        let t1: f64 = SimplexNoise::get_corner_noise3d(gi1, x1, y1, 0.0f64, 0.5f64);
+        let t2: f64 = SimplexNoise::get_corner_noise3d(gi2, x2, y2, 0.0f64, 0.5f64);
         70.0f64 * (t0 + t1 + t2)
     }
 

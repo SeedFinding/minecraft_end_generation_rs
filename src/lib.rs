@@ -8,6 +8,8 @@ use std::fs::File;
 use std::io::{Write, BufWriter};
 use std::cmp::min;
 use core::fmt;
+use std::time::SystemTime;
+use intmap::IntMap;
 
 mod voronoi;
 mod simplex_noise;
@@ -29,8 +31,9 @@ fn sha2long(mut seed: u64) -> u64 {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy,PartialEq)]
 pub enum EndBiomes {
+    Default=0,
     TheEnd = 9,
     SmallEndIslands = 40,
     EndMidlands = 41,
@@ -95,6 +98,7 @@ pub struct EndGen {
     seed: u64,
     noise: SimplexNoise,
     voronoi: Voronoi,
+    cache:IntMap<EndBiomes>,
 }
 
 impl EndGen {
@@ -103,19 +107,28 @@ impl EndGen {
         let mut r: Random = Random::with_raw_seed_and_lcg(seed ^ 0x5DEECE66D, END_LCG);
         let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
-        EndGen { seed, noise, voronoi }
+        let cache: IntMap<EndBiomes> = IntMap::with_capacity(1024);
+        EndGen { seed, noise, voronoi,cache }
     }
     pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, 0, z);
-        return self.get_biome(xx, zz);
+        return self.get_biome(xx>>2, zz>>2);
     }
     pub fn get_final_biome(&mut self, x: i32, y: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, y, z);
-        return self.get_biome(xx, zz);
+        return self.get_biome(xx>>2, zz>>2);
     }
-    pub fn get_biome(&mut self, x: i32, z: i32) -> EndBiomes {
-        let chunk_x: i32 = x >> 2;
-        let chunk_z: i32 = z >> 2;
+    pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes{
+        let key: u64 = ((chunk_x as u64) << 32 | (chunk_z as u64)) as u64;
+        let value: EndBiomes = *self.cache.get(key).unwrap_or(&EndBiomes::Default);
+        if value != EndBiomes::Default {
+            return value;
+        }
+        let value: EndBiomes = self._get_biome(chunk_x, chunk_z);
+        self.cache.insert(key, value);
+        return value;
+    }
+    fn _get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
         if chunk_x as i64 * chunk_x as i64 + chunk_z as i64 * chunk_z as i64 <= 4096i64 {
             return EndBiomes::TheEnd;
         }
