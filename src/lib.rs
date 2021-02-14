@@ -1,32 +1,14 @@
 #![allow(dead_code)]
 
-use sha2::{Sha256, Digest};
-use java_random::{Random, LCG};
-use std::cmp::min;
 use core::fmt;
+
 use intmap::IntMap;
+use java_random::{LCG, Random};
+use noise_rs::math;
 use noise_rs::simplex_noise::SimplexNoise;
 use noise_rs::voronoi::Voronoi;
-use noise_rs::math;
 
 pub const END_LCG: LCG = LCG { multiplier: 257489430523441, addend: 184379205320524 };
-
-fn sha2long(mut seed: u64) -> u64 {
-    let mut bytes: [u8; 8] = [0; 8];
-    for i in 0..8 {
-        bytes[i] = (seed & 255) as u8;
-        seed >>= 8;
-    }
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    let result = hasher.finalize();
-    let mut ret_val: u64 = (result[0] & 0xFF) as u64;
-    for i in 1..min(8, result.len()) {
-        ret_val |= (((result[i] & 0xFF) as u64).wrapping_shl((i << 3) as u32)) as u64;
-    }
-    ret_val
-}
-
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EndBiomes {
@@ -49,17 +31,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sha() {
-        assert_eq!(sha2long(1551515151585454), 4053242177535254290)
-    }
-
-    #[test]
     fn gen1() {
         let seed: u64 = 1551515151585454u64;
         let x: i32 = 10000;
         let z: i32 = 10000;
         let mut gen: EndGen = EndGen::new(seed);
-        assert_eq!(gen.get_final_biome(x, 251, z).to_string(),"SmallEndIslands");
+        assert_eq!(gen.get_final_biome(x, 251, z).to_string(), "SmallEndIslands");
     }
 
     #[test]
@@ -68,13 +45,13 @@ mod tests {
         let x: i32 = 10000;
         let z: i32 = 10000;
         let mut gen: EndGen = EndGen::new(seed);
-        let mut sum:i32=0;
+        let mut sum: i32 = 0;
         for y in 0..256 {
-            let biome:EndBiomes=gen.get_final_biome(x, y, z);
-            sum=sum.wrapping_add(biome as i32);
+            let biome: EndBiomes = gen.get_final_biome(x, y, z);
+            sum = sum.wrapping_add(biome as i32);
             println!("{} {}", y, biome.to_string());
         }
-        assert_eq!(sum,10689);
+        assert_eq!(sum, 10689);
     }
 
 
@@ -105,7 +82,7 @@ pub struct EndGen {
 
 impl EndGen {
     pub fn new(seed: u64) -> Self {
-        let voronoi: Voronoi = Voronoi::new(sha2long(seed) as i64);
+        let voronoi: Voronoi = Voronoi::new(math::sha2long(seed) as i64);
         let mut r: Random = Random::with_raw_seed_and_lcg(Random::default_scramble(seed), END_LCG);
         let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));

@@ -1,6 +1,6 @@
 [package]
 name = "minecraft_end_generation"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["Neil <neilhube12@gmail.com>"]
 edition = "2018"
 description="The minecraft end generation implemented in rust"
@@ -9,9 +9,8 @@ license="MIT"
 
 [dependencies]
 java_random = "0.1.4"
-sha2 = "0.9.3"
 intmap = "0.7.0"
-noise_rs = "0.1.6"
+noise_rs = "0.1.7"
 
 [profile.dev]
 opt-level = 3
