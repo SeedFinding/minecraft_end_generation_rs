@@ -1,15 +1,13 @@
 #![allow(dead_code)]
 
-mod math;
 use sha2::{Sha256, Digest};
-use crate::voronoi::{Voronoi};
 use java_random::{Random, LCG};
 use std::cmp::min;
 use core::fmt;
 use intmap::IntMap;
 use noise_rs::simplex_noise::SimplexNoise;
-
-mod voronoi;
+use noise_rs::voronoi::Voronoi;
+use noise_rs::math;
 
 pub const END_LCG: LCG = LCG { multiplier: 257489430523441, addend: 184379205320524 };
 
