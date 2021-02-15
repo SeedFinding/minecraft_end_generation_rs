@@ -100,7 +100,7 @@ impl EndGen {
         return self.get_biome(xx >> 2, zz >> 2);
     }
     pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
-        let key: u64 = ((chunk_x as u64) << 32 | (chunk_z as u64)) as u64;
+        let key: u64 = (((chunk_x as u32) as u64) << 32 | ((chunk_z as u32) as u64)) as u64;
         let value: EndBiomes = *self.cache.get(key).unwrap_or(&EndBiomes::Default);
         if value != EndBiomes::Default {
             return value;
