@@ -10,7 +10,7 @@ use noise_rs::voronoi::Voronoi;
 
 pub const END_LCG: LCG = LCG::combine_java(17292);
 
-
+#[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EndBiomes {
     Default = 0,
@@ -72,15 +72,36 @@ mod tests {
     }
 }
 
-
-
+/// <div rustbindgen hide></div>
 #[derive(Clone)]
-pub struct EndGen {
-    seed: u64,
+struct Noise {
     noise: SimplexNoise,
     voronoi: Voronoi,
     cache: IntMap<EndBiomes>,
 }
+
+#[repr(C)]
+#[derive(Clone)]
+pub struct EndGen {
+    seed: u64,
+    _noise: Box<Noise>,
+}
+
+#[no_mangle]
+pub extern "C" fn create_new_end(seed: u64) -> Box<EndGen> {
+    Box::new(EndGen::new(seed))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_biome_2d(end_gen: &mut EndGen, x: i32,  z: i32) -> EndBiomes {
+    end_gen.get_final_biome_2d(x,  z)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_biome(end_gen: &mut EndGen, x: i32, y: i32, z: i32) -> EndBiomes {
+    end_gen.get_final_biome(x, y, z)
+}
+
 
 impl EndGen {
     pub fn new(seed: u64) -> Self {
@@ -89,24 +110,27 @@ impl EndGen {
         let seed: u64 = r.next_state().get_raw_seed();
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
         let cache: IntMap<EndBiomes> = IntMap::with_capacity(1024);
-        EndGen { seed, noise, voronoi, cache }
+        let noise = Noise {
+            noise, voronoi, cache
+        };
+        EndGen { seed,_noise:Box::new(noise) }
     }
     pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
-        let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, 0, z);
+        let (xx, _, zz): (i32, i32, i32) = self._noise.voronoi.get_fuzzy_positions(x, 0, z);
         return self.get_biome(xx >> 2, zz >> 2);
     }
     pub fn get_final_biome(&mut self, x: i32, y: i32, z: i32) -> EndBiomes {
-        let (xx, _, zz): (i32, i32, i32) = self.voronoi.get_fuzzy_positions(x, y, z);
+        let (xx, _, zz): (i32, i32, i32) = self._noise.voronoi.get_fuzzy_positions(x, y, z);
         return self.get_biome(xx >> 2, zz >> 2);
     }
     pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
         let key: u64 = (((chunk_x as u32) as u64) << 32 | ((chunk_z as u32) as u64)) as u64;
-        let value: EndBiomes = *self.cache.get(key).unwrap_or(&EndBiomes::Default);
+        let value: EndBiomes = *self._noise.cache.get(key).unwrap_or(&EndBiomes::Default);
         if value != EndBiomes::Default {
             return value;
         }
         let value: EndBiomes = self._get_biome(chunk_x, chunk_z);
-        self.cache.insert(key, value);
+        self._noise.cache.insert(key, value);
         return value;
     }
     fn _get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
@@ -135,7 +159,7 @@ impl EndGen {
             for rz in -12..=12 {
                 let shifted_x: i64 = (scaled_x + rx) as i64;
                 let shifted_z: i64 = (scaled_z + rz) as i64;
-                if shifted_x * shifted_x + shifted_z * shifted_z <= 4096i64 || !(self.noise.get_value_2d(shifted_x as f64, shifted_z as f64) < -0.8999999761581421) {
+                if shifted_x * shifted_x + shifted_z * shifted_z <= 4096i64 || !(self._noise.noise.get_value_2d(shifted_x as f64, shifted_z as f64) < -0.8999999761581421) {
                     continue;
                 }
                 let elevation: f32 = (math::abs(shifted_x as f32) * 3439.0f32 + math::abs(shifted_z as f32) * 147.0f32) % 13.0f32 + 9.0f32;

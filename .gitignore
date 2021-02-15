@@ -1,4 +1,4 @@
-/target
+target
 Cargo.lock
 
 .idea/
@@ -6,3 +6,18 @@ Cargo.lock
 out.txt
 
 *.out
+*.egg-info
+*.so
+
+minecraft_end_gen_rs/_native.py
+minecraft_end_gen_rs/_native__ffi.py
+.eggs
+*.pyc
+dist
+build
+*.pyd
+.eggs/milksnake-0.1.5-py3.9.egg/EGG-INFO/
+
+examples/example
+
+examples/example.exe
