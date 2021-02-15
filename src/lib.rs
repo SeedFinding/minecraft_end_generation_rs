@@ -3,7 +3,7 @@
 use core::fmt;
 
 use intmap::IntMap;
-use java_random::{LCG, Random, JAVA_LCG};
+use java_random::{LCG, Random};
 use noise_rs::math;
 use noise_rs::simplex_noise::SimplexNoise;
 use noise_rs::voronoi::Voronoi;

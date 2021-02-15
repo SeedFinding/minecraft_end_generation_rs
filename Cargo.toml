@@ -1,6 +1,6 @@
 [package]
 name = "minecraft_end_generation"
-version = "0.1.7"
+version = "0.2.0"
 authors = ["Neil <neilhube12@gmail.com>"]
 edition = "2018"
 description="The minecraft end generation implemented in rust"
@@ -29,3 +29,7 @@ harness = false
 [[bin]]
 name="example"
 path="src/bin.rs"
+
+[lib]
+name="minecraft_end_gen_rs"
+crate_type = ["dylib"]
