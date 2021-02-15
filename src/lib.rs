@@ -3,12 +3,13 @@
 use core::fmt;
 
 use intmap::IntMap;
-use java_random::{LCG, Random};
+use java_random::{LCG, Random, JAVA_LCG};
 use noise_rs::math;
 use noise_rs::simplex_noise::SimplexNoise;
 use noise_rs::voronoi::Voronoi;
 
-pub const END_LCG: LCG = LCG { multiplier: 257489430523441, addend: 184379205320524 };
+pub const END_LCG: LCG = LCG::combine_java(17292);
+
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EndBiomes {
@@ -70,6 +71,7 @@ mod tests {
         assert_eq!(som, 41033489);
     }
 }
+
 
 
 #[derive(Clone)]

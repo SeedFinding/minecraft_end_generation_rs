@@ -1,6 +1,6 @@
 [package]
 name = "minecraft_end_generation"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Neil <neilhube12@gmail.com>"]
 edition = "2018"
 description="The minecraft end generation implemented in rust"
@@ -8,7 +8,7 @@ categories=["algorithms","data-structures"]
 license="MIT"
 
 [dependencies]
-java_random = "0.1.4"
+java_random = "0.1.6"
 intmap = "0.7.0"
 noise_rs = "0.1.7"
 
@@ -27,5 +27,5 @@ harness = false
 
 
 [[bin]]
-name="temp"
+name="example"
 path="src/bin.rs"
