@@ -98,7 +98,7 @@ pub unsafe extern "C" fn delete(end_gen: &mut EndGen) -> () {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn get_biome_2d(end_gen: &mut EndGen, x: i32, z: i32) -> EndBiomes {
+pub extern "C" fn get_biome_2d(end_gen: &mut EndGen, x: i32, z: i32) -> EndBiomes {
     end_gen.get_final_biome_2d(x, z)
 }
 
