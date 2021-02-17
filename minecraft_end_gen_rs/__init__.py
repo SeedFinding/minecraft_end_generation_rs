@@ -32,3 +32,6 @@ def get_biome_2d(end_gen: POINTER(EndGen), x: c_int32, z: c_int32) -> EndBiomes:
 
 def get_biome(end_gen: POINTER(EndGen), x: c_int32, y: c_int32, z: c_int32) -> EndBiomes:
     return _native.lib.get_biome(end_gen, x, y, z)
+
+def delete(end_gen: POINTER(EndGen)):
+    return _native.lib.delete(end_gen)

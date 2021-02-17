@@ -1,6 +1,6 @@
 [package]
 name = "minecraft_end_generation"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Neil <neilhube12@gmail.com>"]
 edition = "2018"
 description="The minecraft end generation implemented in rust"

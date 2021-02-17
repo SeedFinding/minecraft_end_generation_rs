@@ -11,4 +11,5 @@ int main(){
     }
     printf("%llu\n",sizeof (endGen->seed));
     printf("%llu\n",sizeof (endGen->_noise));
+    delete(endGen);
 }

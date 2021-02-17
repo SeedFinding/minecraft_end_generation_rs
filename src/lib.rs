@@ -93,8 +93,13 @@ pub extern "C" fn create_new_end(seed: u64) -> Box<EndGen> {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn get_biome_2d(end_gen: &mut EndGen, x: i32,  z: i32) -> EndBiomes {
-    end_gen.get_final_biome_2d(x,  z)
+pub unsafe extern "C" fn delete(end_gen: &mut EndGen) -> () {
+    std::mem::drop(Box::from_raw(end_gen));
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn get_biome_2d(end_gen: &mut EndGen, x: i32, z: i32) -> EndBiomes {
+    end_gen.get_final_biome_2d(x, z)
 }
 
 #[no_mangle]
@@ -111,9 +116,11 @@ impl EndGen {
         let noise: SimplexNoise = SimplexNoise::init(Random::with_raw_seed(seed));
         let cache: IntMap<EndBiomes> = IntMap::with_capacity(1024);
         let noise = Noise {
-            noise, voronoi, cache
+            noise,
+            voronoi,
+            cache,
         };
-        EndGen { seed,_noise:Box::new(noise) }
+        EndGen { seed, _noise: Box::new(noise) }
     }
     pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self._noise.voronoi.get_fuzzy_positions(x, 0, z);
