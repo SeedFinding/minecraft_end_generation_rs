@@ -8,7 +8,10 @@ use noise_rs::math;
 use noise_rs::simplex_noise::SimplexNoise;
 use noise_rs::voronoi::Voronoi;
 
+#[cfg(feature = "const_fn")]
 pub const END_LCG: LCG = LCG::combine_java(17292);
+#[cfg(not(feature = "const_fn"))]
+pub const END_LCG: LCG = LCG{ multiplier: 257489430523441, addend: 184379205320524 };
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -122,14 +125,17 @@ impl EndGen {
         };
         EndGen { seed, _noise: Box::new(noise) }
     }
+
     pub fn get_final_biome_2d(&mut self, x: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self._noise.voronoi.get_fuzzy_positions(x, 0, z);
         return self.get_biome(xx >> 2, zz >> 2);
     }
+
     pub fn get_final_biome(&mut self, x: i32, y: i32, z: i32) -> EndBiomes {
         let (xx, _, zz): (i32, i32, i32) = self._noise.voronoi.get_fuzzy_positions(x, y, z);
         return self.get_biome(xx >> 2, zz >> 2);
     }
+
     pub fn get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
         let key: u64 = (((chunk_x as u32) as u64) << 32 | ((chunk_z as u32) as u64)) as u64;
         let value: EndBiomes = *self._noise.cache.get(key).unwrap_or(&EndBiomes::Default);
@@ -140,6 +146,7 @@ impl EndGen {
         self._noise.cache.insert(key, value);
         return value;
     }
+
     fn _get_biome(&mut self, chunk_x: i32, chunk_z: i32) -> EndBiomes {
         if chunk_x as i64 * chunk_x as i64 + chunk_z as i64 * chunk_z as i64 <= 4096i64 {
             return EndBiomes::TheEnd;
@@ -156,6 +163,7 @@ impl EndGen {
         }
         return EndBiomes::EndBarrens;
     }
+
     fn get_height(&mut self, x: i32, z: i32) -> f32 {
         let scaled_x: i32 = x / 2;
         let scaled_z: i32 = z / 2;
@@ -177,6 +185,7 @@ impl EndGen {
         }
         return height;
     }
+
     pub fn set_seed(&mut self, seed: u64) {
         let mut random: Random = Random::with_seed_and_lcg(Random::default_scramble(seed), END_LCG);
         self.seed = random.next_state().get_raw_seed()

@@ -1,5 +1,8 @@
 # Minecraft End Generation in Rust
 
+Warning by default you need rust 1.46.0+ since I use const fn but if you want to use another version just pass 
+`--no-default-features` on your build/test/run command or as a dependency do `default-features = false`
+
 You can run this in C, C++, Rust and Python.
 
 First thing: Get rust: https://rustup.rs
