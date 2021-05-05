@@ -1,6 +1,6 @@
 [package]
 name = "minecraft_end_generation"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Neil <neilhube12@gmail.com>"]
 edition = "2018"
 description = "The minecraft end generation implemented in rust"
@@ -10,7 +10,7 @@ license = "MIT"
 [dependencies]
 java_random = { version = "0.1.7", default-features = false }
 intmap = "0.7.0"
-noise_rs = { version = "0.1.15", default-features = false }
+noise_rs = { version = "0.1.16", default-features = false }
 
 [features]
 default = ["const_fn"]

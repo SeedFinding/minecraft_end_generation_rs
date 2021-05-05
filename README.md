@@ -1,7 +1,8 @@
 # Minecraft End Generation in Rust
 
-Warning by default you need rust 1.46.0+ since I use const fn but if you want to use another version just pass 
-`--no-default-features` on your build/test/run command or as a dependency do `default-features = false`
+Warning by default you need rust 1.47.0+ since I use const fn but if you want to use another version just pass 
+`--no-default-features` on your build/test/run command or as a dependency do `default-features = false`.
+The MSRV is 1.40.0 if you disable default-features because of the use non exhaustive memchr #45394.
 
 You can run this in C, C++, Rust and Python.
 
